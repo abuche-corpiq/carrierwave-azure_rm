@@ -15,16 +15,21 @@ module CarrierWave
 
       def connection
         @connection ||= begin
-          %i(storage_account_name storage_access_key storage_blob_host).each do |key|
-            ::Azure::Storage.send("#{key}=", uploader.send("azure_#{key}"))
-          end
+          # %i(storage_account_name storage_access_key storage_blob_host).each do |key|
+          #   ::Azure::Storage.send("#{key}=", uploader.send("azure_#{key}"))
+          # end
+          common_client = Azure::Storage::Common::Client.create(storage_account_name: uploader.send('azure_storage_account_name'), storage_access_key: uploader.send('azure_storage_access_key'))
+
+          ::Azure::Storage::Blob::BlobService.new(client: common_client)
+          
           ::Azure::Storage::Blob::BlobService.new
         end
       end
 
       def signer
         @signer ||= begin
-          ::Azure::Storage::Core::Auth::SharedAccessSignature.new
+          token_credential = ::Azure::Storage::Common::Core::TokenCredential.new uploader.send('azure_storage_access_key')
+          ::Azure::Storage::Common::Core::Auth::TokenSigner.new token_credential          
         end
       end
 
